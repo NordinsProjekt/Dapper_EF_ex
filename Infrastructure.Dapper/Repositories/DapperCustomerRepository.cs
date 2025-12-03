@@ -29,7 +29,15 @@ public class DapperCustomerRepository(string connectionString) : IRepository<Cus
     {
         // Note: Dapper doesn't support Expression trees directly
         // For a production system, consider using a library like DapperExtensions or implement specific search methods
-        return await GetAllAsync(cancellationToken);
+        // For now, get all and filter in memory (not ideal for large datasets)
+        var all = await GetAllAsync(cancellationToken);
+        return all.Where(predicate.Compile());
+    }
+
+    public async Task<Customer?> FirstOrDefaultAsync(Expression<Func<Customer, bool>> predicate, CancellationToken cancellationToken = default)
+    {
+        var results = await FindAsync(predicate, cancellationToken);
+        return results.FirstOrDefault();
     }
 
     public async Task<Customer> AddAsync(Customer entity, CancellationToken cancellationToken = default)
@@ -89,5 +97,26 @@ public class DapperCustomerRepository(string connectionString) : IRepository<Cus
     {
         // Dapper doesn't use Unit of Work pattern by default
         return Task.FromResult(0);
+    }
+
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        const string sql = @"SELECT COUNT(1) FROM Customers WHERE Id = @Id";
+        var count = await connection.ExecuteScalarAsync<int>(sql, new { Id = id });
+        return count > 0;
+    }
+
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        const string sql = @"SELECT COUNT(*) FROM Customers";
+        return await connection.ExecuteScalarAsync<int>(sql);
+    }
+
+    public async Task<int> CountAsync(Expression<Func<Customer, bool>> predicate, CancellationToken cancellationToken = default)
+    {
+        var results = await FindAsync(predicate, cancellationToken);
+        return results.Count();
     }
 }

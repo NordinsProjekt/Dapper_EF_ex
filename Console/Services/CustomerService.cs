@@ -1,51 +1,42 @@
-using Application.Services.Interfaces;
-using Domain.Entities;
-using Infrastructure.EFCore;
+using Application.Services;
 
 namespace Presentation.KioskViewer.Services;
 
-public class CustomerService
+/// <summary>
+/// Presentation layer wrapper for CustomerService.
+/// Delegates to Application.Services.CustomerService.
+/// </summary>
+public class CustomerServiceWrapper
 {
-    private readonly IRepository<Customer> _repository;
+    private readonly CustomerService _customerService;
 
-    public CustomerService(IRepository<Customer> repository)
+    public CustomerServiceWrapper(CustomerService customerService)
     {
-        _repository = repository;
+        _customerService = customerService;
     }
 
-    public async Task<IEnumerable<Customer>> GetAllCustomersAsync()
+    public async Task<IEnumerable<Domain.Entities.Customer>> GetAllCustomersAsync()
     {
-        return await _repository.GetAllAsync();
+        return await _customerService.GetAllCustomersAsync();
     }
 
-    public async Task<Customer?> GetCustomerByIdAsync(Guid id)
+    public async Task<Domain.Entities.Customer?> GetCustomerByIdAsync(Guid id)
     {
-        return await _repository.GetByIdAsync(id);
+        return await _customerService.GetCustomerByIdAsync(id);
     }
 
-    public async Task<Customer> CreateCustomerAsync(string firstName, string lastName, string email, string? phone = null)
+    public async Task<Domain.Entities.Customer> CreateCustomerAsync(string firstName, string lastName, string email, string? phone = null)
     {
-        var customer = new Customer
-        {
-            Id = Guid.NewGuid(),
-            FirstName = firstName,
-            LastName = lastName,
-            Email = email,
-            Phone = phone,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        return await _repository.AddAsync(customer);
+        return await _customerService.CreateCustomerAsync(firstName, lastName, email, phone);
     }
 
-    public async Task UpdateCustomerAsync(Customer customer)
+    public async Task UpdateCustomerAsync(Domain.Entities.Customer customer)
     {
-        customer.UpdatedAt = DateTime.UtcNow;
-        await _repository.UpdateAsync(customer);
+        await _customerService.UpdateCustomerAsync(customer);
     }
 
     public async Task DeleteCustomerAsync(Guid id)
     {
-        await _repository.DeleteByIdAsync(id);
+        await _customerService.DeleteCustomerAsync(id);
     }
 }

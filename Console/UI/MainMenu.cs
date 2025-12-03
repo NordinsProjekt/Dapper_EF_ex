@@ -4,12 +4,12 @@ namespace Presentation.KioskViewer.UI;
 
 public class MainMenu
 {
-    private readonly CustomerService _customerService;
-    private readonly ProductService _productService;
-    private readonly EmployeeService _employeeService;
+    private readonly CustomerServiceWrapper _customerService;
+    private readonly ProductServiceWrapper _productService;
+    private readonly EmployeeServiceWrapper _employeeService;
     private readonly string _dataProvider;
 
-    public MainMenu(CustomerService customerService, ProductService productService, EmployeeService employeeService, string dataProvider)
+    public MainMenu(CustomerServiceWrapper customerService, ProductServiceWrapper productService, EmployeeServiceWrapper employeeService, string dataProvider)
     {
         _customerService = customerService;
         _productService = productService;
@@ -469,17 +469,31 @@ public class MainMenu
         Console.Write("Email: ");
         var email = Console.ReadLine() ?? "";
         
+        Console.Write("Phone (optional): ");
+        var phone = Console.ReadLine();
+        
+        Console.Write("Hire Date (YYYY-MM-DD, leave empty for today): ");
+        var hireDateStr = Console.ReadLine();
+        DateTime hireDate = DateTime.Today;
+        if (!string.IsNullOrWhiteSpace(hireDateStr) && DateTime.TryParse(hireDateStr, out var parsedDate))
+        {
+            hireDate = parsedDate;
+        }
+        
         Console.Write("Hourly Rate: ");
         if (!decimal.TryParse(Console.ReadLine(), out var rate))
         {
             Console.WriteLine("Invalid hourly rate format.");
             return;
         }
-        
-        Console.Write("Phone (optional): ");
-        var phone = Console.ReadLine();
 
-        var employee = await _employeeService.CreateEmployeeAsync(firstName, lastName, email, rate, string.IsNullOrWhiteSpace(phone) ? null : phone);
+        var employee = await _employeeService.CreateEmployeeAsync(
+            firstName, 
+            lastName, 
+            email, 
+            string.IsNullOrWhiteSpace(phone) ? null : phone,
+            hireDate,
+            rate);
         Console.WriteLine($"\nEmployee created successfully with ID: {employee.Id}");
     }
 

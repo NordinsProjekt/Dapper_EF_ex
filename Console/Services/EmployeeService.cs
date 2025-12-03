@@ -1,52 +1,44 @@
-using Application.Services.Interfaces;
+using Application.Services;
 using Domain.Entities;
 using Infrastructure.EFCore;
 
 namespace Presentation.KioskViewer.Services;
 
-public class EmployeeService
+/// <summary>
+/// Presentation layer wrapper for EmployeeService.
+/// Delegates to Application.Services.EmployeeService.
+/// </summary>
+public class EmployeeServiceWrapper
 {
-    private readonly IRepository<Employee> _repository;
+    private readonly EmployeeService _employeeService;
 
-    public EmployeeService(IRepository<Employee> repository)
+    public EmployeeServiceWrapper(EmployeeService employeeService)
     {
-        _repository = repository;
+        _employeeService = employeeService;
     }
 
     public async Task<IEnumerable<Employee>> GetAllEmployeesAsync()
     {
-        return await _repository.GetAllAsync();
+        return await _employeeService.GetAllEmployeesAsync();
     }
 
     public async Task<Employee?> GetEmployeeByIdAsync(Guid id)
     {
-        return await _repository.GetByIdAsync(id);
+        return await _employeeService.GetEmployeeByIdAsync(id);
     }
 
-    public async Task<Employee> CreateEmployeeAsync(string firstName, string lastName, string email, decimal hourlyRate, string? phone = null)
+    public async Task<Employee> CreateEmployeeAsync(string firstName, string lastName, string email, string? phone, DateTime hireDate, decimal hourlyRate, bool isActive = true)
     {
-        var employee = new Employee
-        {
-            Id = Guid.NewGuid(),
-            FirstName = firstName,
-            LastName = lastName,
-            Email = email,
-            Phone = phone,
-            HireDate = DateTime.UtcNow,
-            HourlyRate = hourlyRate,
-            IsActive = true
-        };
-
-        return await _repository.AddAsync(employee);
+        return await _employeeService.CreateEmployeeAsync(firstName, lastName, email, phone, hireDate, hourlyRate, isActive);
     }
 
     public async Task UpdateEmployeeAsync(Employee employee)
     {
-        await _repository.UpdateAsync(employee);
+        await _employeeService.UpdateEmployeeAsync(employee);
     }
 
     public async Task DeleteEmployeeAsync(Guid id)
     {
-        await _repository.DeleteByIdAsync(id);
+        await _employeeService.DeleteEmployeeAsync(id);
     }
 }

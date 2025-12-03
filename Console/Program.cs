@@ -66,16 +66,21 @@ internal class Program
                     services.AddDapperInfrastructure(connectionString);
                 }
 
-                // Register application services
-                services.AddScoped<CustomerService>();
-                services.AddScoped<ProductService>();
-                services.AddScoped<EmployeeService>();
+                // Register APPLICATION SERVICES (business logic layer)
+                services.AddScoped<Application.Services.CustomerService>();
+                services.AddScoped<Application.Services.ProductService>();
+                services.AddScoped<Application.Services.EmployeeService>();
+
+                // Register PRESENTATION WRAPPERS
+                services.AddScoped<CustomerServiceWrapper>();
+                services.AddScoped<ProductServiceWrapper>();
+                services.AddScoped<EmployeeServiceWrapper>();
 
                 // Register UI
                 services.AddScoped(sp => new MainMenu(
-                    sp.GetRequiredService<CustomerService>(),
-                    sp.GetRequiredService<ProductService>(),
-                    sp.GetRequiredService<EmployeeService>(),
+                    sp.GetRequiredService<CustomerServiceWrapper>(),
+                    sp.GetRequiredService<ProductServiceWrapper>(),
+                    sp.GetRequiredService<EmployeeServiceWrapper>(),
                     dataProvider.ToString()
                 ));
             })

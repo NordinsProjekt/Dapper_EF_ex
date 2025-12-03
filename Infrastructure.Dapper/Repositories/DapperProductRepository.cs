@@ -34,7 +34,14 @@ public class DapperProductRepository : IRepository<Product>
 
     public async Task<IEnumerable<Product>> FindAsync(Expression<Func<Product, bool>> predicate, CancellationToken cancellationToken = default)
     {
-        return await GetAllAsync(cancellationToken);
+        var all = await GetAllAsync(cancellationToken);
+        return all.Where(predicate.Compile());
+    }
+
+    public async Task<Product?> FirstOrDefaultAsync(Expression<Func<Product, bool>> predicate, CancellationToken cancellationToken = default)
+    {
+        var results = await FindAsync(predicate, cancellationToken);
+        return results.FirstOrDefault();
     }
 
     public async Task<Product> AddAsync(Product entity, CancellationToken cancellationToken = default)
@@ -93,5 +100,26 @@ public class DapperProductRepository : IRepository<Product>
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(0);
+    }
+
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        const string sql = @"SELECT COUNT(1) FROM Products WHERE Id = @Id";
+        var count = await connection.ExecuteScalarAsync<int>(sql, new { Id = id });
+        return count > 0;
+    }
+
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        using var connection = CreateConnection();
+        const string sql = @"SELECT COUNT(*) FROM Products";
+        return await connection.ExecuteScalarAsync<int>(sql);
+    }
+
+    public async Task<int> CountAsync(Expression<Func<Product, bool>> predicate, CancellationToken cancellationToken = default)
+    {
+        var results = await FindAsync(predicate, cancellationToken);
+        return results.Count();
     }
 }

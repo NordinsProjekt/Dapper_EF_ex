@@ -1,52 +1,42 @@
-using Application.Services.Interfaces;
-using Domain.Entities;
-using Infrastructure.EFCore;
+using Application.Services;
 
 namespace Presentation.KioskViewer.Services;
 
-public class ProductService
+/// <summary>
+/// Presentation layer wrapper for ProductService.
+/// Delegates to Application.Services.ProductService.
+/// </summary>
+public class ProductServiceWrapper
 {
-    private readonly IRepository<Product> _repository;
+    private readonly ProductService _productService;
 
-    public ProductService(IRepository<Product> repository)
+    public ProductServiceWrapper(ProductService productService)
     {
-        _repository = repository;
+        _productService = productService;
     }
 
-    public async Task<IEnumerable<Product>> GetAllProductsAsync()
+    public async Task<IEnumerable<Domain.Entities.Product>> GetAllProductsAsync()
     {
-        return await _repository.GetAllAsync();
+        return await _productService.GetAllProductsAsync();
     }
 
-    public async Task<Product?> GetProductByIdAsync(Guid id)
+    public async Task<Domain.Entities.Product?> GetProductByIdAsync(Guid id)
     {
-        return await _repository.GetByIdAsync(id);
+        return await _productService.GetProductByIdAsync(id);
     }
 
-    public async Task<Product> CreateProductAsync(string name, string? description, decimal price, int stockQuantity, string? sku = null)
+    public async Task<Domain.Entities.Product> CreateProductAsync(string name, string? description, decimal price, int stockQuantity, string? sku = null)
     {
-        var product = new Product
-        {
-            Id = Guid.NewGuid(),
-            Name = name,
-            Description = description,
-            Price = price,
-            StockQuantity = stockQuantity,
-            SKU = sku,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        return await _repository.AddAsync(product);
+        return await _productService.CreateProductAsync(name, description, price, stockQuantity, sku);
     }
 
-    public async Task UpdateProductAsync(Product product)
+    public async Task UpdateProductAsync(Domain.Entities.Product product)
     {
-        product.UpdatedAt = DateTime.UtcNow;
-        await _repository.UpdateAsync(product);
+        await _productService.UpdateProductAsync(product);
     }
 
     public async Task DeleteProductAsync(Guid id)
     {
-        await _repository.DeleteByIdAsync(id);
+        await _productService.DeleteProductAsync(id);
     }
 }

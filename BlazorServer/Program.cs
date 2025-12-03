@@ -1,6 +1,5 @@
 using BlazorServer;
 using BlazorServer.Components;
-using BlazorServer.Services;
 using Domain.Entities;
 using Infrastructure.EFCore;
 using Infrastructure.EFCore.Repositories;
@@ -8,6 +7,7 @@ using Infrastructure.Dapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using Application.Services.Interfaces;
+using Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +42,8 @@ else
     builder.Services.AddDapperInfrastructure(connectionString);
 }
 
-// Register application services
+// Register APPLICATION SERVICES (business logic layer)
+// These services contain the business logic and are shared between Console and Blazor
 builder.Services.AddScoped<CustomerService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<EmployeeService>();
