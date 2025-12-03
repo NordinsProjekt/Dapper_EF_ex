@@ -1,0 +1,324 @@
+@page "/employees"
+@using BlazorServer.Services
+@using Domain.Entities
+@inject EmployeeService EmployeeService
+@rendermode InteractiveServer
+
+<PageTitle>Employees</PageTitle>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title">Employee Management</h1>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <span class="bi bi-plus-circle"></span> Add Employee
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <span class="bi bi-exclamation-triangle-fill"></span> @errorMessage
+        </div>
+    }
+    else if (!employees.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">
+                <span class="bi bi-person-badge"></span>
+            </div>
+            <h3>No employees yet</h3>
+            <p>Get started by adding your first employee</p>
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
+                <span class="bi bi-plus-circle"></span> Add Employee
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="data-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Hire Date</th>
+                        <th>Hourly Rate</th>
+                        <th>Status</th>
+                        <th class="actions-column">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var employee in employees)
+                    {
+                        <tr class="@(!employee.IsActive ? "table-secondary" : "")">
+                            <td>
+                                <div class="name-cell">
+                                    <div class="avatar">@employee.FirstName[0]@employee.LastName[0]</div>
+                                    <span>@employee.FirstName @employee.LastName</span>
+                                </div>
+                            </td>
+                            <td>@employee.Email</td>
+                            <td>@(employee.Phone ?? "N/A")</td>
+                            <td>@employee.HireDate.ToLocalTime().ToString("MMM dd, yyyy")</td>
+                            <td><span class="price">$@employee.HourlyRate.ToString("N2")</span></td>
+                            <td>
+                                <span class="badge @(employee.IsActive ? "bg-success" : "bg-secondary")">
+                                    @(employee.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td class="actions-column">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditModal(employee)">
+                                    <span class="bi bi-pencil"></span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => ShowDeleteModal(employee)">
+                                    <span class="bi bi-trash"></span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-footer">
+            <span class="record-count">
+                Total: @employees.Count() employees 
+                (@employees.Count(e => e.IsActive) active, @employees.Count(e => !e.IsActive) inactive)
+            </span>
+        </div>
+    }
+</div>
+
+@if (showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Edit Employee" : "Add Employee")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="currentEmployee" OnValidSubmit="SaveEmployee">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">First Name</label>
+                            <InputText class="form-control" @bind-Value="currentEmployee.FirstName" placeholder="Enter first name" />
+                            <ValidationMessage For="() => currentEmployee.FirstName" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <InputText class="form-control" @bind-Value="currentEmployee.LastName" placeholder="Enter last name" />
+                            <ValidationMessage For="() => currentEmployee.LastName" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText type="email" class="form-control" @bind-Value="currentEmployee.Email" placeholder="email@example.com" />
+                            <ValidationMessage For="() => currentEmployee.Email" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Phone (Optional)</label>
+                            <InputText class="form-control" @bind-Value="currentEmployee.Phone" placeholder="123-456-7890" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Hire Date</label>
+                                <InputDate class="form-control" @bind-Value="currentEmployee.HireDate" />
+                                <ValidationMessage For="() => currentEmployee.HireDate" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Hourly Rate</label>
+                                <InputNumber class="form-control" @bind-Value="currentEmployee.HourlyRate" placeholder="15.00" />
+                                <ValidationMessage For="() => currentEmployee.HourlyRate" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="currentEmployee.IsActive" id="isActiveCheck" />
+                            <label class="form-check-label" for="isActiveCheck">
+                                Active Employee
+                            </label>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="bi bi-save"></span> Save
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showDeleteModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>@employeeToDelete?.FirstName @employeeToDelete?.LastName</strong>?</p>
+                    <p class="text-muted">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">
+                        <span class="bi bi-trash"></span> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Employee> employees = new();
+    private Employee currentEmployee = new();
+    private Employee? employeeToDelete;
+    private bool showModal = false;
+    private bool showDeleteModal = false;
+    private bool isEditing = false;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEmployees();
+    }
+
+    private async Task LoadEmployees()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+            employees = (await EmployeeService.GetAllEmployeesAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading employees: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        currentEmployee = new Employee 
+        { 
+            Id = Guid.NewGuid(),
+            HireDate = DateTime.Today,
+            IsActive = true
+        };
+        isEditing = false;
+        showModal = true;
+    }
+
+    private void ShowEditModal(Employee employee)
+    {
+        currentEmployee = new Employee
+        {
+            Id = employee.Id,
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            Email = employee.Email,
+            Phone = employee.Phone,
+            HireDate = employee.HireDate,
+            HourlyRate = employee.HourlyRate,
+            IsActive = employee.IsActive
+        };
+        isEditing = true;
+        showModal = true;
+    }
+
+    private void ShowDeleteModal(Employee employee)
+    {
+        employeeToDelete = employee;
+        showDeleteModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentEmployee = new();
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        employeeToDelete = null;
+    }
+
+    private async Task SaveEmployee()
+    {
+        try
+        {
+            if (isEditing)
+            {
+                await EmployeeService.UpdateEmployeeAsync(currentEmployee);
+            }
+            else
+            {
+                await EmployeeService.CreateEmployeeAsync(
+                    currentEmployee.FirstName,
+                    currentEmployee.LastName,
+                    currentEmployee.Email,
+                    currentEmployee.Phone,
+                    currentEmployee.HireDate,
+                    currentEmployee.HourlyRate,
+                    currentEmployee.IsActive
+                );
+            }
+
+            CloseModal();
+            await LoadEmployees();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving employee: {ex.Message}";
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (employeeToDelete != null)
+        {
+            try
+            {
+                await EmployeeService.DeleteEmployeeAsync(employeeToDelete.Id);
+                CloseDeleteModal();
+                await LoadEmployees();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error deleting employee: {ex.Message}";
+                CloseDeleteModal();
+            }
+        }
+    }
+}

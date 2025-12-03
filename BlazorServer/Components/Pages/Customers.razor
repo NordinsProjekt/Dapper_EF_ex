@@ -1,0 +1,284 @@
+@page "/customers"
+@using BlazorServer.Services
+@using Domain.Entities
+@inject CustomerService CustomerService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Customers</PageTitle>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title">Customer Management</h1>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <span class="bi bi-plus-circle"></span> Add Customer
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <span class="bi bi-exclamation-triangle-fill"></span> @errorMessage
+        </div>
+    }
+    else if (!customers.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">
+                <span class="bi bi-people"></span>
+            </div>
+            <h3>No customers yet</h3>
+            <p>Get started by adding your first customer</p>
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
+                <span class="bi bi-plus-circle"></span> Add Customer
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="data-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Created</th>
+                        <th class="actions-column">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var customer in customers)
+                    {
+                        <tr>
+                            <td>
+                                <div class="name-cell">
+                                    <div class="avatar">@customer.FirstName[0]@customer.LastName[0]</div>
+                                    <span>@customer.FirstName @customer.LastName</span>
+                                </div>
+                            </td>
+                            <td>@customer.Email</td>
+                            <td>@(customer.Phone ?? "N/A")</td>
+                            <td>@customer.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</td>
+                            <td class="actions-column">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditModal(customer)">
+                                    <span class="bi bi-pencil"></span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => ShowDeleteModal(customer)">
+                                    <span class="bi bi-trash"></span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-footer">
+            <span class="record-count">Total: @customers.Count() customers</span>
+        </div>
+    }
+</div>
+
+@if (showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Edit Customer" : "Add Customer")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="currentCustomer" OnValidSubmit="SaveCustomer">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">First Name</label>
+                            <InputText class="form-control" @bind-Value="currentCustomer.FirstName" placeholder="Enter first name" />
+                            <ValidationMessage For="() => currentCustomer.FirstName" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <InputText class="form-control" @bind-Value="currentCustomer.LastName" placeholder="Enter last name" />
+                            <ValidationMessage For="() => currentCustomer.LastName" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <InputText type="email" class="form-control" @bind-Value="currentCustomer.Email" placeholder="email@example.com" />
+                            <ValidationMessage For="() => currentCustomer.Email" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Phone (Optional)</label>
+                            <InputText class="form-control" @bind-Value="currentCustomer.Phone" placeholder="123-456-7890" />
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="bi bi-save"></span> Save
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showDeleteModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>@customerToDelete?.FirstName @customerToDelete?.LastName</strong>?</p>
+                    <p class="text-muted">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">
+                        <span class="bi bi-trash"></span> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Customer> customers = new();
+    private Customer currentCustomer = new();
+    private Customer? customerToDelete;
+    private bool showModal = false;
+    private bool showDeleteModal = false;
+    private bool isEditing = false;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomers();
+    }
+
+    private async Task LoadCustomers()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+            customers = (await CustomerService.GetAllCustomersAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading customers: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        currentCustomer = new Customer { Id = Guid.NewGuid() };
+        isEditing = false;
+        showModal = true;
+    }
+
+    private void ShowEditModal(Customer customer)
+    {
+        currentCustomer = new Customer
+        {
+            Id = customer.Id,
+            FirstName = customer.FirstName,
+            LastName = customer.LastName,
+            Email = customer.Email,
+            Phone = customer.Phone,
+            CreatedAt = customer.CreatedAt,
+            UpdatedAt = customer.UpdatedAt
+        };
+        isEditing = true;
+        showModal = true;
+    }
+
+    private void ShowDeleteModal(Customer customer)
+    {
+        customerToDelete = customer;
+        showDeleteModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentCustomer = new();
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        customerToDelete = null;
+    }
+
+    private async Task SaveCustomer()
+    {
+        try
+        {
+            if (isEditing)
+            {
+                await CustomerService.UpdateCustomerAsync(currentCustomer);
+            }
+            else
+            {
+                await CustomerService.CreateCustomerAsync(
+                    currentCustomer.FirstName,
+                    currentCustomer.LastName,
+                    currentCustomer.Email,
+                    currentCustomer.Phone
+                );
+            }
+
+            CloseModal();
+            await LoadCustomers();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving customer: {ex.Message}";
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (customerToDelete != null)
+        {
+            try
+            {
+                await CustomerService.DeleteCustomerAsync(customerToDelete.Id);
+                CloseDeleteModal();
+                await LoadCustomers();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error deleting customer: {ex.Message}";
+                CloseDeleteModal();
+            }
+        }
+    }
+}

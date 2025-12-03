@@ -1,0 +1,155 @@
+﻿@page "/"
+@inject IDataProviderService DataProviderService
+
+<PageTitle>Kiosk Management System</PageTitle>
+
+<div class="home-container">
+    <div class="hero-section">
+        <h1 class="hero-title">Kiosk Management System</h1>
+        <p class="hero-subtitle">Manage your customers, products, and employees with ease</p>
+        <div class="data-provider-badge">
+            <span class="badge-label">Data Provider:</span>
+            <span class="badge-value">@DataProviderService.Provider.ToString()</span>
+        </div>
+    </div>
+
+    <div class="cards-grid">
+        <a href="/customers" class="feature-card">
+            <div class="card-icon">
+                <span class="bi bi-people-fill"></span>
+            </div>
+            <h3>Customers</h3>
+            <p>View and manage customer information</p>
+        </a>
+
+        <a href="/products" class="feature-card">
+            <div class="card-icon">
+                <span class="bi bi-box-seam-fill"></span>
+            </div>
+            <h3>Products</h3>
+            <p>Track inventory and product details</p>
+        </a>
+
+        <a href="/employees" class="feature-card">
+            <div class="card-icon">
+                <span class="bi bi-person-badge-fill"></span>
+            </div>
+            <h3>Employees</h3>
+            <p>Manage employee records and information</p>
+        </a>
+    </div>
+</div>
+
+<style>
+    .home-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .hero-section {
+        text-align: center;
+        padding: 3rem 1rem;
+        margin-bottom: 3rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        color: white;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.95;
+        margin-bottom: 1.5rem;
+    }
+
+    .data-provider-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1.5rem;
+        border-radius: 50px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .badge-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-right: 0.5rem;
+    }
+
+    .badge-value {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .feature-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        border-color: #667eea;
+    }
+
+    .card-icon {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+    }
+
+    .feature-card h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #2d3748;
+    }
+
+    .feature-card p {
+        color: #718096;
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    @@media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1rem;
+        }
+
+        .cards-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

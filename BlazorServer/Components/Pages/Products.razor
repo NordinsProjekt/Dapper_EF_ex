@@ -1,0 +1,301 @@
+@page "/products"
+@using BlazorServer.Services
+@using Domain.Entities
+@inject ProductService ProductService
+@rendermode InteractiveServer
+
+<PageTitle>Products</PageTitle>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1 class="page-title">Product Management</h1>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <span class="bi bi-plus-circle"></span> Add Product
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            <span class="bi bi-exclamation-triangle-fill"></span> @errorMessage
+        </div>
+    }
+    else if (!products.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-icon">
+                <span class="bi bi-box-seam"></span>
+            </div>
+            <h3>No products yet</h3>
+            <p>Get started by adding your first product</p>
+            <button class="btn btn-primary" @onclick="ShowCreateModal">
+                <span class="bi bi-plus-circle"></span> Add Product
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="data-table">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>SKU</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Created</th>
+                        <th class="actions-column">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in products)
+                    {
+                        <tr>
+                            <td>
+                                <div class="product-name">
+                                    <strong>@product.Name</strong>
+                                    @if (!string.IsNullOrEmpty(product.Description))
+                                    {
+                                        <small class="text-muted d-block">@product.Description</small>
+                                    }
+                                </div>
+                            </td>
+                            <td>@(product.SKU ?? "N/A")</td>
+                            <td><span class="price">$@product.Price.ToString("N2")</span></td>
+                            <td>
+                                <span class="badge @(product.StockQuantity > 10 ? "bg-success" : product.StockQuantity > 0 ? "bg-warning" : "bg-danger")">
+                                    @product.StockQuantity
+                                </span>
+                            </td>
+                            <td>@product.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")</td>
+                            <td class="actions-column">
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ShowEditModal(product)">
+                                    <span class="bi bi-pencil"></span>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => ShowDeleteModal(product)">
+                                    <span class="bi bi-trash"></span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="table-footer">
+            <span class="record-count">Total: @products.Count() products</span>
+        </div>
+    }
+</div>
+
+@if (showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditing ? "Edit Product" : "Add Product")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="currentProduct" OnValidSubmit="SaveProduct">
+                        <DataAnnotationsValidator />
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Product Name</label>
+                            <InputText class="form-control" @bind-Value="currentProduct.Name" placeholder="Enter product name" />
+                            <ValidationMessage For="() => currentProduct.Name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Description (Optional)</label>
+                            <InputTextArea class="form-control" @bind-Value="currentProduct.Description" placeholder="Enter description" rows="3" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Price</label>
+                                <InputNumber class="form-control" @bind-Value="currentProduct.Price" placeholder="0.00" />
+                                <ValidationMessage For="() => currentProduct.Price" />
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Stock Quantity</label>
+                                <InputNumber class="form-control" @bind-Value="currentProduct.StockQuantity" placeholder="0" />
+                                <ValidationMessage For="() => currentProduct.StockQuantity" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">SKU (Optional)</label>
+                            <InputText class="form-control" @bind-Value="currentProduct.SKU" placeholder="PROD-001" />
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="bi bi-save"></span> Save
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showDeleteModal)
+{
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>@productToDelete?.Name</strong>?</p>
+                    <p class="text-muted">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">
+                        <span class="bi bi-trash"></span> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Product> products = new();
+    private Product currentProduct = new();
+    private Product? productToDelete;
+    private bool showModal = false;
+    private bool showDeleteModal = false;
+    private bool isEditing = false;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+            products = (await ProductService.GetAllProductsAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading products: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        currentProduct = new Product { Id = Guid.NewGuid() };
+        isEditing = false;
+        showModal = true;
+    }
+
+    private void ShowEditModal(Product product)
+    {
+        currentProduct = new Product
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Description = product.Description,
+            Price = product.Price,
+            StockQuantity = product.StockQuantity,
+            SKU = product.SKU,
+            CreatedAt = product.CreatedAt,
+            UpdatedAt = product.UpdatedAt
+        };
+        isEditing = true;
+        showModal = true;
+    }
+
+    private void ShowDeleteModal(Product product)
+    {
+        productToDelete = product;
+        showDeleteModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentProduct = new();
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        productToDelete = null;
+    }
+
+    private async Task SaveProduct()
+    {
+        try
+        {
+            if (isEditing)
+            {
+                await ProductService.UpdateProductAsync(currentProduct);
+            }
+            else
+            {
+                await ProductService.CreateProductAsync(
+                    currentProduct.Name,
+                    currentProduct.Description,
+                    currentProduct.Price,
+                    currentProduct.StockQuantity,
+                    currentProduct.SKU
+                );
+            }
+
+            CloseModal();
+            await LoadProducts();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving product: {ex.Message}";
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (productToDelete != null)
+        {
+            try
+            {
+                await ProductService.DeleteProductAsync(productToDelete.Id);
+                CloseDeleteModal();
+                await LoadProducts();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error deleting product: {ex.Message}";
+                CloseDeleteModal();
+            }
+        }
+    }
+}
